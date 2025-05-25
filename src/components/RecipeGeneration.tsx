@@ -1,13 +1,12 @@
 import React from "react";
-import type { RecipePreferences } from "./RecipePreferencesForm";
+import type { RecipeRequest } from "./RecipePreferencesForm";
+import { Recipe } from "./SelectRecipe";
 
 interface RecipeGenerationProps {
   ingredients: string[];
-  preferences?: RecipePreferences;
+  preferences?: RecipeRequest;
   onRecipesGenerated?: (recipes: Recipe[]) => void;
 }
-
-const BACKEND_URL = "http://localhost:8000";
 
 const RecipeGeneration: React.FC<RecipeGenerationProps> = ({ ingredients, preferences, onRecipesGenerated }) => {
   const [numRecipes, setNumRecipes] = React.useState(1);
@@ -24,7 +23,7 @@ const RecipeGeneration: React.FC<RecipeGenerationProps> = ({ ingredients, prefer
       }
       setCleanedIngredients(null); // Indicate loading
       try {
-        const res = await fetch(`${BACKEND_URL}/clean-ingredients`, {
+        const res = await fetch(`/api/clean-ingredients`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ingredients }),
@@ -50,7 +49,7 @@ const RecipeGeneration: React.FC<RecipeGenerationProps> = ({ ingredients, prefer
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${BACKEND_URL}/recipes-request`, {
+      const res = await fetch(`/api/recipes-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

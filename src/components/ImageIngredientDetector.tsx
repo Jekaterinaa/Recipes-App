@@ -38,7 +38,7 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
     try {
       const formData = new FormData();
       formData.append("img", selectedFile);
-      const res = await fetch("http://localhost:8000/user-image", {
+      const res = await fetch("/api/user-image", {
         method: "POST",
         body: formData,
       });
@@ -80,7 +80,7 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch("http://localhost:8000/clean-ingredients", {
+        const res = await fetch("/api/clean-ingredients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ingredients }),

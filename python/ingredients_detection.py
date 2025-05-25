@@ -5,7 +5,7 @@ from PIL import Image
 import base64
 import io
 import uuid
-from prompts import ingredients_detection_system_prompt, ingredients_detection_user_prompt
+from python.prompts import ingredients_detection_system_prompt, ingredients_detection_user_prompt
 from pydantic import BaseModel, Field
 
 load_dotenv()

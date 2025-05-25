@@ -1,13 +1,14 @@
 from fastapi import FastAPI, UploadFile, File, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from typing import Any
+import os
 from langchain.chat_models import init_chat_model
-from ingredients_detection import detect_ingredients, save_uploaded_image
-from recipes_generation import generate_recipes, RecipeRequest, clean_ingredients, Ingredients
-from image_generation import generate_recipe_images, encode_image_to_base64
-from fastapi.encoders import jsonable_encoder
-import base64
+from python.ingredients_detection import detect_ingredients, save_uploaded_image
+from python.recipes_generation import generate_recipes, RecipeRequest, clean_ingredients, Ingredients
+from python.image_generation import generate_recipe_images, encode_image_to_base64
 
 load_dotenv()
 
@@ -27,11 +28,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello from FastAPI backend!"}
+# Mount static files for the frontend
+static_dir = os.path.join(os.path.dirname(__file__), "../static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-@app.post("/user-image")
+# API routes
+@app.post("/api/user-image")
 def user_image_endpoint(
     img: UploadFile = File(...)
 ) -> dict:
@@ -39,7 +42,16 @@ def user_image_endpoint(
     result = detect_ingredients(image_path, llm)
     return {"ingredients": result}
 
-@app.post("/recipes-request")
+
+@app.post("/api/clean-ingredients")
+def clean_ingredients_endpoint(
+    ingredients: Ingredients = Body(...)
+) -> dict:
+    cleaned = clean_ingredients(ingredients, llm)
+    return {"ingredients": cleaned}
+
+
+@app.post("/api/recipes-request")
 def recipes_request_endpoint(
     request: RecipeRequest
 ) -> dict:
@@ -61,31 +73,28 @@ def recipes_request_endpoint(
         })
     return {"recipes": minimal_recipes}
 
-@app.post("/clean-ingredients")
-def clean_ingredients_endpoint(
-    ingredients: Ingredients = Body(...)
-) -> dict:
-    cleaned = clean_ingredients(ingredients, llm)
-    return {"ingredients": cleaned}
+# Serve the frontend
+@app.get("/")
+async def serve_frontend():
+    static_dir = os.path.join(os.path.dirname(__file__), "../static")
+    index_file = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {"message": "Frontend not built"}
 
-@app.post("/step_1")
-def step_1():
-    # inputs: free text and an image uploaded by the user + session id
-    # process the inputs with AI
-    # outputs: five images with descriptions
-    # return the images and descriptions
-    return {"message": "This is step 1 of the FastAPI backend!"}
-
-@app.post("/step_2")
-def step_2():
-    # inputs: index from 0 to 4 of the selected image + session id
-    # outputs: a full generated recipe
-    return {"message": "This is step 2 of the FastAPI backend!"}
-
-@app.post("/step_3")
-def step_3():
-    # inputs: user input (what needs to be changed in the recipe) + session id
-    # outputs: a revised recipe and new image
-    return {"message": "This is step 3 of the FastAPI backend!"}
-
-print("Starting FastAPI server...")
+# Catch-all route for frontend routing
+@app.get("/{path:path}")
+async def serve_frontend_routes(path: str):
+    static_dir = os.path.join(os.path.dirname(__file__), "../static")
+    file_path = os.path.join(static_dir, path)
+    
+    # If it's a file that exists, serve it
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    
+    # Otherwise, serve index.html for client-side routing
+    index_file = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    
+    return {"message": "File not found"}

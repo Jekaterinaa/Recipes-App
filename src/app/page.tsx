@@ -29,7 +29,7 @@ export default function Home() {
       avoid: Array.isArray(request.avoid) ? request.avoid : [request.avoid],
     };
     try {
-      const res = await fetch("http://localhost:8000/recipes-request", {
+      const res = await fetch("/api/recipes-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -94,6 +94,7 @@ export default function Home() {
               setSelectedRecipe(recipe);
               setStep("selected");
             }}
+            onGoToStart={() => window.location.reload()}
           />
         )}
       </div>

@@ -15,9 +15,10 @@ export interface Recipe {
 interface SelectRecipeProps {
   recipes: Recipe[];
   onSelect?: (recipe: Recipe) => void;
+  onGoToStart?: () => void;
 }
 
-const SelectRecipe: React.FC<SelectRecipeProps> = ({ recipes: initialRecipes, onSelect }) => {
+const SelectRecipe: React.FC<SelectRecipeProps> = ({ recipes: initialRecipes, onSelect, onGoToStart }) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
   useEffect(() => {
@@ -39,12 +40,19 @@ const SelectRecipe: React.FC<SelectRecipeProps> = ({ recipes: initialRecipes, on
   }, [initialRecipes]);
 
   return (
-    <div className="w-full flex flex-col items-center justify-center min-h-[72vh] bg-[#FFF7ED] rounded-2xl shadow-xl">
+    <div className="w-full flex flex-col items-center justify-center min-h-[72vh] bg-[#FFF7ED] rounded-2xl shadow-xl relative">
+      {/* Go to Start button in upper right */}
+      {onGoToStart && (
+        <button
+          className="absolute top-4 right-4 text-orange-700 hover:underline font-semibold text-base z-10"
+          onClick={onGoToStart}
+        >
+          Go to Start
+        </button>
+      )}
       <h2 className="text-3xl font-bold text-orange-800 mb-6 text-center">Generated Recipes</h2>
-      <div className={`w-full flex justify-center ${recipes.length === 3 ? 'overflow-x-auto' : ''}`}
-        style={recipes.length === 3 ? { WebkitOverflowScrolling: 'touch' } : {}}>
-        <div className={`flex gap-8 ${recipes.length === 1 ? 'justify-center' : recipes.length === 2 ? 'justify-center' : ''} w-full max-w-3xl`}
-          style={recipes.length === 3 ? { minWidth: '900px' } : {}}>
+      <div className="w-full flex justify-center">
+        <div className={`flex gap-8 justify-center w-full max-w-3xl`}>
           {recipes.map((recipe, idx) => (
             <div key={idx} className="flex-shrink-0 w-80 flex flex-col items-center">
               <Card className="hover:shadow-2xl transition-shadow duration-200 cursor-pointer h-[408px] flex flex-col justify-between items-center" onClick={() => onSelect && onSelect(recipe)}>

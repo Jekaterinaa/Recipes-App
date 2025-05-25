@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
-from prompts import recipes_generation_system_prompt, recipes_generation_user_prompt, ingredients_checks_system_prompt, ingredients_checks_user_prompt
-from ingredients_detection import Ingredients
+from python.prompts import recipes_generation_system_prompt, recipes_generation_user_prompt, ingredients_checks_system_prompt, ingredients_checks_user_prompt
+from python.ingredients_detection import Ingredients
 
 
 class Recipe(BaseModel):

@@ -1,5 +1,5 @@
-from recipes_generation import Recipe, RecipeWithImage
-from prompts import recipe_image_generation_prompt
+from python.recipes_generation import Recipe, RecipeWithImage
+from python.prompts import recipe_image_generation_prompt
 from openai import OpenAI
 import base64
 import uuid
