@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # Configuration variables
-PROJECT_ID="your-gcp-project-id"
+PROJECT_ID="true-oarlock-460913-p9"
 SERVICE_NAME="jserge-ae-cap"
-REGION="us-central1"
-IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+REGION="europe-west4"
+ARTIFACT_REGISTRY="europe-west4-docker.pkg.dev/${PROJECT_ID}/my-repo"
+IMAGE_NAME="${ARTIFACT_REGISTRY}/${SERVICE_NAME}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -45,7 +46,8 @@ fi
 if [ "$PROJECT_ID" = "your-gcp-project-id" ]; then
     echo -e "${YELLOW}📝 Please enter your GCP Project ID:${NC}"
     read -r PROJECT_ID
-    IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+    ARTIFACT_REGISTRY="europe-west4-docker.pkg.dev/${PROJECT_ID}/my-repo"
+    IMAGE_NAME="${ARTIFACT_REGISTRY}/${SERVICE_NAME}"
 fi
 
 # Set the project
@@ -56,19 +58,23 @@ gcloud config set project $PROJECT_ID
 echo -e "${GREEN}🔌 Enabling required APIs...${NC}"
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable run.googleapis.com
-gcloud services enable containerregistry.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+
+# Configure Docker to use Artifact Registry
+echo -e "${GREEN}🔧 Configuring Docker for Artifact Registry...${NC}"
+gcloud auth configure-docker europe-west4-docker.pkg.dev
 
 # Build the Docker image
-echo -e "${GREEN}🏗️  Building Docker image...${NC}"
-docker build -t $IMAGE_NAME .
+echo -e "${GREEN}🏗️  Building Docker image for linux/amd64 platform...${NC}"
+docker build --platform linux/amd64 -t $IMAGE_NAME .
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Docker build failed${NC}"
     exit 1
 fi
 
-# Push the image to Google Container Registry
-echo -e "${GREEN}📤 Pushing image to Google Container Registry...${NC}"
+# Push the image to Artifact Registry
+echo -e "${GREEN}📤 Pushing image to Artifact Registry...${NC}"
 docker push $IMAGE_NAME
 
 if [ $? -ne 0 ]; then
@@ -86,7 +92,7 @@ gcloud run deploy $SERVICE_NAME \
     --port 8080 \
     --memory 2Gi \
     --cpu 1 \
-    --max-instances 10 \
+    --max-instances 1 \
     --set-env-vars "NODE_ENV=production,OPENAI_API_KEY=${OPENAI_API_KEY}"
 
 if [ $? -eq 0 ]; then
