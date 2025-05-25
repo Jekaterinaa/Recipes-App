@@ -2,6 +2,10 @@
 
 An intelligent recipe generation application that uses AI to detect ingredients from user uploaded photos and create personalized recipes based on user preferences. This project combines computer vision, natural language processing, and image generation to provide a complete cooking assistant experience.
 
+## Access to the Project
+
+This project can be accessed and tested via following link: https://jserge-ae-cap-u5ywkuu7fq-ez.a.run.app
+
 ## Project Overview
 
 The AI Recipe Generator is a full-stack web application that helps users discover new recipes by simply uploading a photo of their available ingredients. The application leverages AI technologies to provide an intuitive and personalized cooking experience.
