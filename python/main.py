@@ -11,10 +11,11 @@ from python.recipes_generation import generate_recipes, RecipeRequest, clean_ing
 from python.image_generation import generate_recipe_images, encode_image_to_base64
 
 load_dotenv()
+print(os.getenv("OPENAI_API_KEY"))
 
 user_state: dict[str, Any] = {}
 
-app = FastAPI()
+app = FastAPI(redirect_slashes=False)
 
 llm = init_chat_model(
     "openai:gpt-4.1"

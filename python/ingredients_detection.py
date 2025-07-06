@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 class Ingredients(BaseModel):
-    ingredients: list[str] = Field(description="List of ingredients detected in the image and string")
+    ingredients: list[str] = Field(description="List of ingredients detected in the image")
 
 def save_uploaded_image(img: UploadFile) -> str:
     image_bytes = img.file.read()
