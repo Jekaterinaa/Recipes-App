@@ -18,7 +18,7 @@ interface SelectedRecipeProps {
 
 const SelectedRecipe: React.FC<SelectedRecipeProps> = ({ recipe, onBack }) => {
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center min-h-[72vh] bg-[#FFF7ED] rounded-2xl shadow-xl overflow-y-hidden max-h-[90vh] p-4 relative">
+    <div className="w-full h-full flex flex-col items-center justify-center min-h-[72vh] bg-[#FFF7ED] rounded-2xl border border-orange-100 overflow-y-hidden max-h-[90vh] p-4 relative">
       {/* Pin Back button to upper left */}
       <button
         className="absolute top-4 left-4 text-orange-700 hover:underline font-semibold text-base z-10"
@@ -28,7 +28,7 @@ const SelectedRecipe: React.FC<SelectedRecipeProps> = ({ recipe, onBack }) => {
       </button>
       <div className="w-full max-w-4xl mx-auto flex flex-row h-full gap-8">
         {/* Left section: 1/3 width, match right height */}
-        <div className="flex flex-col items-center w-1/3 min-w-[220px] max-w-sm bg-white/80 rounded-lg p-4 shadow h-full self-stretch mt-0 justify-center">
+        <div className="flex flex-col items-center w-[312px] min-w-[260px] bg-white/80 rounded-lg p-4 self-stretch mt-0 justify-center">
           <div className="text-xl font-bold text-orange-800 mb-2 text-center break-words w-full">{recipe.name}</div>
           {recipe.image_base64 && (
             <div className="flex justify-center w-full mb-2">
@@ -49,7 +49,7 @@ const SelectedRecipe: React.FC<SelectedRecipeProps> = ({ recipe, onBack }) => {
           )}
         </div>
         {/* Right section: 2/3 width */}
-        <div className="flex-1 flex flex-col bg-white/80 rounded-lg p-6 shadow max-h-[70vh] overflow-y-auto">
+        <div className="flex-1 flex flex-col bg-white/80 rounded-lg p-6 max-h-[70vh] overflow-y-auto">
           {recipe.ingredients && recipe.ingredients.length > 0 && (
             <div className="mb-4 w-full">
               <h3 className="font-semibold text-orange-700 mb-1 text-lg">Ingredients:</h3>

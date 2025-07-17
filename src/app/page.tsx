@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ImageIngredientDetector from "../components/ImageIngredientDetector";
 import RecipePreferencesForm, { RecipeRequest } from "../components/RecipePreferencesForm";
 import SelectRecipe from "../components/SelectRecipe";
@@ -11,6 +11,13 @@ export default function Home() {
   const [detectedIngredients, setDetectedIngredients] = useState<string[]>([]);
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+
+  useEffect(() => {
+    // Clean up any existing images when the app starts
+    fetch('/api/cleanup-session', {
+      method: 'POST',
+    }).catch(console.error);
+  }, []); // Empty dependency array means this runs once on mount
 
   // Handler for ImageIngredientDetector
   const handleProceedIngredients = (ingredients: string[]) => {
@@ -50,18 +57,22 @@ export default function Home() {
         className={`absolute inset-0 transition-transform duration-700 ease-in-out ${step === "landing" ? "translate-x-0" : "-translate-x-full"}`}
         style={{ zIndex: 10, background: "#FFF7ED" }}
       >
-        <div className="flex flex-col items-center justify-center h-full px-8 py-16 max-w-2xl mx-auto rounded-2xl shadow-xl border border-orange-100">
-          <h1 className="text-4xl font-extrabold text-orange-800 mb-6 text-center">AI Recipe Generator</h1>
-          <p className="text-lg text-orange-900 mb-8 text-center">
-            Welcome to your smart kitchen assistant! Upload a photo of your ingredients, and let our AI detect what is inside and suggest creative recipes. Discover new meals, reduce food waste, and get inspired—all powered by advanced AI.
-          </p>
-          <button
-            className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-bold py-3 px-12 rounded-full shadow-lg text-xl transition-all duration-200"
-            onClick={() => setStep("ingredients")}
-          >
-            Start
-          </button>
-        </div>
+        <div className="flex flex-col items-center justify-center h-full px-8 py-16 w-full rounded-2xl border border-orange-100">
+          <div className="max-w-[832px]">
+            <h1 className="text-4xl font-extrabold text-orange-800 mb-6 text-center">AI Recipe Generator</h1>
+            <p className="text-lg text-orange-900 mb-8 text-center">
+              Welcome to your smart kitchen assistant! Upload a photo of your ingredients, and let our AI detect what is inside and suggest creative recipes. Discover new meals, reduce food waste, and get inspired—all powered by advanced AI.
+            </p>
+            <div className="flex justify-center">
+              <button
+                className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-bold py-3 px-12 rounded-full text-xl transition-all duration-200"
+                onClick={() => setStep("ingredients")}
+              >
+                Start
+              </button>
+            </div>
+          </div>
+        </div> 
       </div>
       {/* ImageIngredientDetector */}
       <div

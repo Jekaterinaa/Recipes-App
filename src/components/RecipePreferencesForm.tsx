@@ -74,8 +74,8 @@ const RecipePreferencesForm: React.FC<RecipePreferencesFormProps> = ({ onSubmit,
   };
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center min-h-[72vh] bg-[#FFF7ED] rounded-2xl shadow-xl">
-      <Card className="w-full max-w-2xl mx-auto h-full flex flex-col">
+    <div className="w-full h-full flex flex-col items-center justify-center min-h-[72vh] bg-[#FFF7ED] rounded-2xl border border-orange-100">
+      <Card className="w-full max-w-[832px] mx-auto h-full flex flex-col">
         {/* Sticky Title */}
         <div className="sticky top-0 left-0 z-30 bg-[#FFF7ED] rounded-t-2xl shadow-sm px-6 pt-6 pb-3">
           <CardTitle className="text-2xl text-orange-800">Recipe Preferences</CardTitle>

@@ -7,6 +7,9 @@ import io
 import uuid
 from python.prompts import ingredients_detection_system_prompt, ingredients_detection_user_prompt
 from pydantic import BaseModel, Field
+from concurrent.futures import ThreadPoolExecutor
+from typing import List
+from itertools import chain
 
 load_dotenv()
 
@@ -27,8 +30,7 @@ def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
 
-
-def detect_ingredients(
+def detect_ingredients_single(
     img_path: str,
     llm
 ) -> Ingredients:
@@ -64,5 +66,20 @@ def detect_ingredients(
         user_message
     ]
     response: Ingredients = llm.with_structured_output(schema=Ingredients).invoke(messages)
-
+    
     return response.ingredients
+
+def detect_ingredients(
+    img_paths: List[str],
+    llm
+) -> Ingredients:
+    
+    with ThreadPoolExecutor() as executor:
+        all_ingredients_lists = list(executor.map(
+            lambda path: detect_ingredients_single(path, llm),
+            img_paths
+        ))
+    
+    unique_ingredients = list(set(chain.from_iterable(all_ingredients_lists)))
+
+    return Ingredients(ingredients=unique_ingredients)

@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 
 load_dotenv()
+print(os.getenv("IMAGE_MODEL"))
 
 client = OpenAI(
     api_key = os.getenv("OPENAI_API_KEY"),
@@ -35,7 +36,7 @@ def generate_image(
     image_path = ""
 
     result = openai_client.images.generate(
-        model="gpt-image-1",
+        model=os.getenv("IMAGE_MODEL"),
         prompt=image_prompt,
         size="1024x1024",
         quality="low"

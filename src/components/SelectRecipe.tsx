@@ -40,7 +40,7 @@ const SelectRecipe: React.FC<SelectRecipeProps> = ({ recipes: initialRecipes, on
   }, [initialRecipes]);
 
   return (
-    <div className="w-full flex flex-col items-center justify-center min-h-[72vh] bg-[#FFF7ED] rounded-2xl shadow-xl relative">
+    <div className="w-full h-full flex flex-col items-center justify-center min-h-[72vh] bg-[#FFF7ED] rounded-2xl border border-orange-100">
       {/* Go to Start button in upper right */}
       {onGoToStart && (
         <button
@@ -52,10 +52,10 @@ const SelectRecipe: React.FC<SelectRecipeProps> = ({ recipes: initialRecipes, on
       )}
       <h2 className="text-3xl font-bold text-orange-800 mb-6 text-center">Generated Recipes</h2>
       <div className="w-full flex justify-center">
-        <div className={`flex gap-8 justify-center w-full max-w-3xl`}>
+        <div className={`flex gap-8 justify-center w-full max-w-[832px]`}>
           {recipes.map((recipe, idx) => (
             <div key={idx} className="flex-shrink-0 w-80 flex flex-col items-center">
-              <Card className="hover:shadow-2xl transition-shadow duration-200 cursor-pointer h-[408px] flex flex-col justify-between items-center" onClick={() => onSelect && onSelect(recipe)}>
+              <Card className="hover:bg-orange-50 transition-all duration-200 cursor-pointer h-[408px] flex flex-col justify-between items-center" onClick={() => onSelect && onSelect(recipe)}>
                 <CardHeader className="flex justify-center items-center w-full">
                   <CardTitle className="text-center w-full text-orange-800">{recipe.name}</CardTitle>
                 </CardHeader>

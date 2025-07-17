@@ -4,8 +4,9 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ImageIngredientDetector({ onProceed }: { onProceed?: (ingredients: string[]) => void }) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [savedImagePaths, setSavedImagePaths] = useState<string[]>([]); // Track saved image paths
   const [loading, setLoading] = useState(false);
   const [ingredients, setIngredients] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -13,52 +14,128 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
   const [newIngredient, setNewIngredient] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setSelectedFile(file);
+    const newFiles = Array.from(e.target.files || []);
+    const totalFiles = selectedFiles.length + newFiles.length;
+    
+    if (totalFiles > 3) {
+      setError("Maximum 3 images allowed.");
+      return;
+    }
+
+    // Create URLs for new files before updating state
+    const newUrls = newFiles.map(file => ({
+      file,
+      url: URL.createObjectURL(file)
+    }));
+    
+    // Update both states together to maintain consistency
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+    setPreviewUrls(prev => [...prev, ...newUrls.map(item => item.url)]);
     setIngredients(null);
     setError(null);
-    if (file) {
-      setPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setPreviewUrl(null);
+
+    // Reset the input value to allow selecting the same file again
+    if (e.target instanceof HTMLInputElement) {
+      e.target.value = '';
     }
   };
 
+  const handleRemoveImage = async (index: number) => {
+    // Cleanup browser URL for the removed image
+    URL.revokeObjectURL(previewUrls[index]);
+    
+    // Remove image from arrays while keeping others
+    setPreviewUrls(prev => {
+      const newUrls = [...prev];
+      newUrls.splice(index, 1);
+      return newUrls;
+    });
+    
+    setSelectedFiles(prev => {
+      const newFiles = [...prev];
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
+    
+    setSavedImagePaths(prev => {
+      const newPaths = [...prev];
+      const removedPath = newPaths[index];
+      newPaths.splice(index, 1);
+      
+      // Clean up the removed image on the backend if it exists
+      if (removedPath) {
+        fetch('/api/cleanup-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ path: removedPath }),
+        }).catch(err => console.error('Failed to cleanup image:', err));
+      }
+      
+      return newPaths;
+    });
+    
+    // Reset ingredients when removing an image
+    setIngredients(null);
+    setError(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      // Cleanup all preview URLs when component unmounts
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);  // Empty dependency array since we only need this on unmount
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted");
     setLoading(true);
     setIngredients(null);
     setError(null);
-    if (!selectedFile) {
-      setError("Please select an image file.");
+
+    if (selectedFiles.length === 0) {
+      setError("Please select at least one image file.");
       setLoading(false);
       return;
     }
+
     try {
       const formData = new FormData();
-      formData.append("img", selectedFile);
+      selectedFiles.forEach((file) => {
+        formData.append("img", file);
+      });
+
       const res = await fetch("/api/user-image", {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Failed to detect ingredients");
+
+      if (!res.ok) {
+        throw new Error("Failed to detect ingredients");
+      }
+
       const data = await res.json();
-      console.log("/user-image response:", data);
-      if (Array.isArray(data.ingredients)) {
-        setIngredients(data.ingredients);
-      } else if (typeof data.ingredients === "string") {
-        setIngredients([data.ingredients]);
-        setError("Unexpected backend response: received a string instead of an array. Please try again or check backend logs.");
-      } else {
-        setIngredients([]);
-        setError("Unexpected backend response format. Please try again or check backend logs.");
+      
+      if (!data || !Array.isArray(data.ingredients)) {
+        throw new Error("Invalid response format from server");
+      }
+
+      // Save the new image paths
+      if (data.imagePaths && Array.isArray(data.imagePaths)) {
+        setSavedImagePaths(data.imagePaths);
+      }
+
+      setIngredients(data.ingredients);
+      if (data.ingredients.length === 0) {
+        setError("No ingredients detected. Please try with a clearer food image.");
       }
     } catch (err) {
+      setIngredients([]); // Reset ingredients on error
       if (err instanceof Error) {
-        setError(err.message || "Error occurred");
+        setError(err.message);
       } else {
-        setError("Error occurred");
+        setError("An unexpected error occurred");
       }
     } finally {
       setLoading(false);
@@ -112,7 +189,7 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-xl min-h-[72vh] flex items-center" style={{ background: "#FFF7ED" }}>
+    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-orange-100" style={{ background: "#FFF7ED" }}>
       {/* Decorative carrots */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <svg width="100%" height="100%" className="absolute top-0 left-0 opacity-20" style={{zIndex:0}}>
@@ -131,43 +208,86 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
           </g>
         </svg>
       </div>
-      <Card className="relative z-10 bg-transparent shadow-none border-none p-0 w-full">
+      <Card className="relative z-10 bg-transparent border-none p-0 w-full">
         {/* Fixed header at the very top */}
         <div className="absolute left-0 top-0 w-full flex flex-col items-center pt-10" style={{ pointerEvents: 'none', zIndex: 2 }}>
           <CardHeader className="bg-transparent border-none p-0 flex flex-col items-center justify-center w-full">
             <CardTitle className="text-2xl font-bold text-orange-800 tracking-tight mb-2 text-center">Food Ingredient Detector</CardTitle>
-            <p className="text-orange-700 text-base font-medium mb-2 text-center">Upload a food image to detect its ingredients</p>
+            <p className="text-orange-700 text-base font-medium mb-2 text-center">Upload up to 3 food images to detect ingredients</p>
           </CardHeader>
         </div>
-        <CardContent className="w-full flex flex-row gap-16 items-center justify-center pt-32">
-          <form className="flex flex-col gap-4 items-center w-1/2 justify-center text-center" onSubmit={handleSubmit}>
+        <CardContent className="w-full flex flex-row gap-16 items-start justify-center pt-32">
+          <form className="flex flex-col gap-4 items-center w-1/2 justify-start text-center min-h-[400px]" onSubmit={handleSubmit}>
             <input
               type="file"
               accept="image/jpeg,image/png,image/jpg,image/webp"
               onChange={handleFileChange}
               className="file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200 transition-colors duration-200 mx-auto"
+              multiple
             />
-            {previewUrl && (
-              <div className="rounded-xl border-2 border-orange-200 bg-white/70 p-2 shadow-md mb-2 mx-auto">
-                <Image
-                  src={previewUrl}
-                  alt="Preview"
-                  width={192}
-                  height={192}
-                  className="w-48 h-48 object-cover rounded-lg mx-auto"
-                />
-              </div>
+            <div className="flex flex-wrap gap-4 justify-center items-center min-h-[200px] w-full">
+              {previewUrls.map((url, index) => (
+                <div 
+                  key={`${url}-${index}`}
+                  className={`
+                    rounded-xl border-2 border-orange-200 bg-white/70 p-2 relative group w-[176px] h-[176px]
+                    ${hasIngredients 
+                      ? 'absolute left-0 top-0 transition-all duration-700 ease-out transform-gpu'
+                      : 'transition-all duration-500 ease-out transform-gpu hover:scale-105'
+                    }
+                  `}
+                  style={hasIngredients ? {
+                    transform: `
+                      translateX(${index * 10}px) 
+                      rotate(${index * 12 - 10}deg)
+                    `,
+                    zIndex: selectedFiles.length - index
+                  } : undefined}
+                >
+                  {!hasIngredients && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemoveImage(index);
+                      }}
+                      className="absolute -right-2 -top-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600 z-20"
+                      aria-label="Remove image"
+                    >
+                      ×
+                    </button>
+                  )}
+                  <div className="w-40 h-40 relative">
+                    {url && (
+                      <Image
+                        src={url}
+                        alt={`Preview ${index + 1}`}
+                        fill
+                        className="object-cover rounded-lg"
+                        sizes="160px"
+                        key={`${url}-${index}`}
+                        unoptimized
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {selectedFiles.length === 0 && (
+              <p className="text-sm text-orange-600 mt-1">
+                You can upload up to 3 images
+              </p>
             )}
             <button
               type={hasIngredients ? "button" : "submit"}
               onClick={hasIngredients ? handleProceed : undefined}
               className={
                 (hasIngredients && animateProceed
-                  ? "bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-bold py-2 px-8 rounded-full shadow-lg transition-all duration-200 disabled:opacity-50 mb-8 mx-auto mt-4 animate-slide-right"
-                  : "bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-bold py-2 px-8 rounded-full shadow-lg transition-all duration-200 disabled:opacity-50 mb-8 mx-auto mt-4")
+                  ? "bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-bold py-2 px-8 rounded-full shadow-lg transition-all duration-200 disabled:opacity-50 mb-4 mx-auto mt-2 animate-slide-right"
+                  : "bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white font-bold py-2 px-8 rounded-full shadow-lg transition-all duration-200 disabled:opacity-50 mb-4 mx-auto mt-2")
               }
               style={{ maxWidth: '100%' }}
-              disabled={loading}
+              disabled={loading || selectedFiles.length === 0}
             >
               {hasIngredients ? "Proceed" : loading ? "Detecting..." : "Detect"}
             </button>
