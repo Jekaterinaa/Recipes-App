@@ -53,18 +53,24 @@ const RecipeGeneration: React.FC<RecipeGenerationProps> = ({ ingredients, prefer
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ingredients: cleanedIngredients,
+          ingredients: { ingredients: cleanedIngredients },
           num_recipes: numRecipes,
-          preferences: preferences || {},
+          allergies: preferences?.allergies || [],
+          diet: preferences?.diet || "No restrictions",
+          avoid: preferences?.avoid || [],
+          cuisine: preferences?.cuisine || "No Preference"
         }),
       });
-      if (!res.ok) throw new Error("Failed to generate recipes");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to generate recipes");
+      }
       const data = await res.json();
       if (onRecipesGenerated) {
         onRecipesGenerated(data.recipes || []);
       }
-    } catch {
-      setError("Could not generate recipes. Please try again.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not generate recipes. Please try again.");
     } finally {
       setLoading(false);
     }

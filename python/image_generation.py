@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 
 load_dotenv()
-print(os.getenv("IMAGE_MODEL"))
 
 client = OpenAI(
     api_key = os.getenv("OPENAI_API_KEY"),
@@ -55,7 +54,8 @@ def generate_image(
 
 
 def generate_image_for_recipe(recipe):
-    ingredients_str = ', '.join(recipe.ingredients)
+    # Access the ingredients array properly through the Ingredients object
+    ingredients_str = ', '.join(recipe.ingredients.ingredients if hasattr(recipe.ingredients, 'ingredients') else [])
     prompt = recipe_image_generation_prompt.format(
         recipe_description=f"{recipe.name}. {recipe.short_description} Ingredients: {ingredients_str}"
     )

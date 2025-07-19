@@ -6,7 +6,7 @@ import base64
 import io
 import uuid
 from python.prompts import ingredients_detection_system_prompt, ingredients_detection_user_prompt
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from itertools import chain
@@ -14,7 +14,17 @@ from itertools import chain
 load_dotenv()
 
 class Ingredients(BaseModel):
-    ingredients: list[str] = Field(description="List of ingredients detected in the image")
+    ingredients: list[str] = Field(description="List of ingredients detected in the image or manually entered by the user")
+
+    @field_validator("ingredients", mode="before")
+    def validate_ingredients(cls, v):
+
+        if isinstance(v, str):
+            v = [v]
+        elif not isinstance(v, list):
+            raise TypeError("ingredients must be a string or a list of strings")
+
+        return [str(item) for item in v]
 
 def save_uploaded_image(img: UploadFile) -> str:
     image_bytes = img.file.read()

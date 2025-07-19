@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function ImageIngredientDetector({ onProceed }: { onProceed?: (ingredients: string[]) => void }) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [savedImagePaths, setSavedImagePaths] = useState<string[]>([]); // Track saved image paths
   const [loading, setLoading] = useState(false);
   const [ingredients, setIngredients] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [animateProceed, setAnimateProceed] = useState(false);
   const [newIngredient, setNewIngredient] = useState("");
+  const [newIngredientError, setNewIngredientError] = useState<string>("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
@@ -57,25 +57,6 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
       return newFiles;
     });
     
-    setSavedImagePaths(prev => {
-      const newPaths = [...prev];
-      const removedPath = newPaths[index];
-      newPaths.splice(index, 1);
-      
-      // Clean up the removed image on the backend if it exists
-      if (removedPath) {
-        fetch('/api/cleanup-image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ path: removedPath }),
-        }).catch(err => console.error('Failed to cleanup image:', err));
-      }
-      
-      return newPaths;
-    });
-    
     // Reset ingredients when removing an image
     setIngredients(null);
     setError(null);
@@ -86,7 +67,7 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
       // Cleanup all preview URLs when component unmounts
       previewUrls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, []);  // Empty dependency array since we only need this on unmount
+  }, [previewUrls]);  // Added previewUrls as dependency
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,11 +100,6 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
       
       if (!data || !Array.isArray(data.ingredients)) {
         throw new Error("Invalid response format from server");
-      }
-
-      // Save the new image paths
-      if (data.imagePaths && Array.isArray(data.imagePaths)) {
-        setSavedImagePaths(data.imagePaths);
       }
 
       setIngredients(data.ingredients);
@@ -177,11 +153,40 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
     }
   };
 
+  const validateNewIngredient = (value: string): boolean => {
+    if (!value.trim()) {
+      setNewIngredientError("Value cannot be empty");
+      return false;
+    }
+    if (value.length < 2) {
+      setNewIngredientError("Value must be at least 2 characters long");
+      return false;
+    }
+    if (value.length > 30) {
+      setNewIngredientError("Value must be less than 30 characters");
+      return false;
+    }
+    if (!/^[a-zA-Z\s-]+$/.test(value)) {
+      setNewIngredientError("Only letters, spaces, and hyphens are allowed");
+      return false;
+    }
+    if (ingredients?.includes(value.trim())) {
+      setNewIngredientError("This ingredient is already added");
+      return false;
+    }
+    setNewIngredientError("");
+    return true;
+  };
+
   const handleAddIngredient = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newIngredient.trim()) return;
-    setIngredients(prev => prev ? [newIngredient.trim(), ...prev] : [newIngredient.trim()]);
-    setNewIngredient("");
+    const trimmedValue = newIngredient.trim();
+    
+    if (validateNewIngredient(trimmedValue)) {
+      setIngredients(prev => prev ? [trimmedValue, ...prev] : [trimmedValue]);
+      setNewIngredient("");
+      setNewIngredientError("");
+    }
   };
 
   const handleRemoveIngredient = (idx: number) => {
@@ -298,15 +303,41 @@ export default function ImageIngredientDetector({ onProceed }: { onProceed?: (in
           {ingredients && Array.isArray(ingredients) && ingredients.length > 0 ? (
             <div className="w-2/5 bg-white/80 rounded-lg p-4 border border-orange-200 shadow self-stretch flex flex-col justify-center ml-4 mb-12 mt-4">
               <h3 className="font-semibold text-orange-700 mb-2 text-lg">Detected Ingredients:</h3>
-              <form onSubmit={handleAddIngredient} className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  value={newIngredient}
-                  onChange={e => setNewIngredient(e.target.value)}
-                  placeholder="Add ingredient"
-                  className="flex-1 px-3 py-1 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-base text-gray-800 bg-white/80"
-                />
-                <button type="submit" className="px-3 py-1 bg-orange-400 text-white rounded-lg font-semibold hover:bg-orange-500 transition-colors">Add</button>
+              <form onSubmit={handleAddIngredient} className="flex flex-col gap-2 mb-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newIngredient}
+                    onChange={e => {
+                      setNewIngredient(e.target.value);
+                      if (newIngredientError) validateNewIngredient(e.target.value);
+                    }}
+                    placeholder="Add ingredient"
+                    className={`flex-1 px-3 py-1 border ${
+                      newIngredientError ? 'border-red-400' : 'border-orange-200'
+                    } rounded-lg focus:outline-none focus:ring-2 ${
+                      newIngredientError ? 'focus:ring-red-400' : 'focus:ring-orange-400'
+                    } text-base text-gray-800 bg-white/80`}
+                    aria-invalid={!!newIngredientError}
+                    aria-describedby={newIngredientError ? "ingredient-error" : undefined}
+                  />
+                  <button 
+                    type="submit" 
+                    className={`px-3 py-1 ${
+                      newIngredientError 
+                        ? 'bg-gray-400 cursor-not-allowed' 
+                        : 'bg-orange-400 hover:bg-orange-500'
+                    } text-white rounded-lg font-semibold transition-colors`}
+                    disabled={!!newIngredientError}
+                  >
+                    Add
+                  </button>
+                </div>
+                {newIngredientError && (
+                  <p id="ingredient-error" className="text-sm text-red-500">
+                    {newIngredientError}
+                  </p>
+                )}
               </form>
               <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-2">
                 {ingredients.map((ingredient, idx) => (

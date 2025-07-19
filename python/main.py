@@ -110,7 +110,7 @@ def recipes_request_endpoint(
         minimal_recipes.append({
             "name": r.name,
             "image_base64": image_base64,
-            "ingredients": r.ingredients,
+            "ingredients": r.ingredients.ingredients if hasattr(r.ingredients, 'ingredients') else [],
             "short_description": r.short_description,
             "full_recipe": r.full_recipe,
             "cooking_time": r.cooking_time,
